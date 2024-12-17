@@ -13,14 +13,19 @@ import re
 # Load environment variables
 load_dotenv()
 
-# Initialize the HuggingFaceHub LLM (Mistral model)
+huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+
+# Check if the token is loaded correctly (optional)
+if huggingfacehub_api_token is None:
+    raise ValueError("HUGGINGFACEHUB_API_TOKEN not found in environment variables.")
+
 llm = HuggingFaceHub(
-    repo_id="mistralai/Mistral-7B-Instruct-v0.3", 
+    repo_id="mistralai/Mistral-7B-Instruct-v0.3",
     model_kwargs={
         "temperature": 0.6,
-        "max_new_tokens": 512,
-        "huggingfacehub_api_token": os.getenv("HUGGINGFACEHUB_API_TOKEN")
-    }
+        "max_new_tokens": 512
+    },
+    huggingfacehub_api_token=huggingfacehub_api_token  # Pass the token here
 )
 
 # Set up Streamlit page config
