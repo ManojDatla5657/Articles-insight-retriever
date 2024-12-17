@@ -4,7 +4,7 @@ import pickle
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import UnstructuredURLLoader
-from langchain.vectorstores.faiss import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain_community.llms import HuggingFaceHub
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from dotenv import load_dotenv
@@ -13,19 +13,23 @@ import re
 # Load environment variables
 load_dotenv(dotenv_path='Articles-insight-retriever\.env')
 
+# Load the Hugging Face API token from environment variables
 huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 # Check if the token is loaded correctly (optional)
 if huggingfacehub_api_token is None:
     raise ValueError("HUGGINGFACEHUB_API_TOKEN not found in environment variables.")
+else:
+    print("Hugging Face API Token loaded successfully.")
 
+# Initialize the HuggingFaceHub model with the token
 llm = HuggingFaceHub(
     repo_id="mistralai/Mistral-7B-Instruct-v0.3",
     model_kwargs={
         "temperature": 0.6,
         "max_new_tokens": 512
     },
-    huggingfacehub_api_token=huggingfacehub_api_token  # Pass the token here
+    huggingfacehub_api_token=huggingfacehub_api_token
 )
 
 # Set up Streamlit page config
@@ -35,8 +39,8 @@ st.sidebar.title("🔗 Enter Article URLs")
 
 # Add input fields for URLs in the sidebar
 urls = []
-for i in range(3): 
-    url = st.sidebar.text_input(f"URL {i+1}")
+for i in range(3):
+    url = st.sidebar.text_input(f"URL {i + 1}")
     if url:
         urls.append(url)
 url_btn = st.sidebar.button("Process URLs")
@@ -59,10 +63,10 @@ def process_urls(urls):
         vector_index = FAISS.from_documents(docs, embedding=embeddings)
 
         # Save the index to a pickle file
-        with open('vector_index.pkl', 'wb') as f: 
+        with open('vector_index.pkl', 'wb') as f:
             pickle.dump({
-                'index': vector_index.index, 
-                'docstore': vector_index.docstore, 
+                'index': vector_index.index,
+                'docstore': vector_index.docstore,
                 'index_to_docstore_id': vector_index.index_to_docstore_id
             }, f)
         return True
@@ -84,10 +88,12 @@ query = st.text_input("🔍 Ask a Question:", placeholder="Enter your question h
 
 # Function to extract answer and source using regex
 def extract_answer_and_source(final_answer):
-    answer = re.search(r"Helpful Answer:\s*(.+?)(?:Retrieved from|$)", final_answer, re.DOTALL)
-    source = re.search(r"Retrieved from:\s*(.+)", final_answer)
-    return (answer.group(1).strip() if answer else "Answer not found.", 
-            source.group(1).strip() if source else "Source not found.")
+    answer = re.search(r"Helpful Answer:\s*(.*?)(?:\s*Retrieved from|$)", final_answer, re.DOTALL)
+    source = re.search(r"Retrieved from:\s*(.*)", final_answer)
+    return (
+        answer.group(1).strip() if answer else "Answer not found.",
+        source.group(1).strip() if source else "Source not found."
+    )
 
 # Function to get answer based on the query
 def get_answer(query):
@@ -101,15 +107,15 @@ def get_answer(query):
             index = saved_data['index']
             docstore = saved_data['docstore']
             index_to_docstore_id = saved_data['index_to_docstore_id']
-        
+
         # Initialize FAISS store and retrieval chain
         faiss_store = FAISS(index=index, docstore=docstore, index_to_docstore_id=index_to_docstore_id, embedding_function=embeddings.embed_query)
         chain = RetrievalQA.from_chain_type(
-            llm=llm, 
+            llm=llm,
             chain_type="stuff",
             retriever=faiss_store.as_retriever()
         )
-        
+
         # Get the result from the retrieval chain
         result = chain.run(query)
         return result
@@ -129,7 +135,7 @@ if query:
             # Display the answer
             st.subheader("✅ Answer:")
             st.write(answer_start)
-            
+
             # Display the source only if it's available
             if source_start != "Source not found.":
                 st.subheader("✅ Source:")
