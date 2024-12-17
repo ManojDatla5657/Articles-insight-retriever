@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import re
 
 # Load environment variables
-load_dotenv(dotenv_path=r'C:\Users\Faculty\Desktop\Manoj Projects\Git\Articles-insight-retriever\.env')
+load_dotenv(dotenv_path='Articles-insight-retriever\.env')
 
 huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
