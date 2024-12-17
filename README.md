@@ -1,5 +1,5 @@
 
-# 📰 News Research Tool
+# 📰 Article Research Tool
 
 A Streamlit application for researching news articles by querying multiple sources. The tool processes URLs, creates embeddings, and answers questions based on the content of those articles using a combination of LangChain, HuggingFace, and Google Generative AI embeddings.
 
