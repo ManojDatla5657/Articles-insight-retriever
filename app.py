@@ -18,15 +18,13 @@ llm = HuggingFaceHub(
     repo_id="mistralai/Mistral-7B-Instruct-v0.3", 
     model_kwargs={
         "temperature": 0.6,
-         "max_new_tokens": 512
-    },
-  huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-
-,
+        "max_new_tokens": 512,
+        "huggingfacehub_api_token": os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    }
 )
 
 # Set up Streamlit page config
-st.set_page_config("Article Research Tool", layout="wide")
+st.set_page_config(page_title="Article Research Tool", layout="wide")
 st.title("📰 News Research Tool")
 st.sidebar.title("🔗 Enter Article URLs")
 
