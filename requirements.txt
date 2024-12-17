@@ -1,0 +1,11 @@
+langchain
+langchain-community
+huggingface_hub
+streamlit
+python-dotenv
+langchain_huggingface
+langchainhub
+faiss-cpu
+google-generativeai
+unstructured
+langchain-google-genai
