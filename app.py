@@ -20,7 +20,8 @@ llm = HuggingFaceHub(
         "temperature": 0.6,
          "max_new_tokens": 512
     },
-    huggingfacehub_api_token = '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'
+  huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+
 ,
 )
 
