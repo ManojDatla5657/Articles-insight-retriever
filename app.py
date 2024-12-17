@@ -10,40 +10,70 @@ from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from dotenv import load_dotenv
 import re
 
-# Load environment variables
-load_dotenv(dotenv_path='Articles-insight-retriever\.env')
-
-# Load the Hugging Face API token from environment variables
-huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-
-# Check if the token is loaded correctly (optional)
-if huggingfacehub_api_token is None:
-    raise ValueError("HUGGINGFACEHUB_API_TOKEN not found in environment variables.")
-else:
-    print("Hugging Face API Token loaded successfully.")
-
-# Initialize the HuggingFaceHub model with the token
-llm = HuggingFaceHub(
-    repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-    model_kwargs={
-        "temperature": 0.6,
-        "max_new_tokens": 512
-    },
-    huggingfacehub_api_token=huggingfacehub_api_token
-)
-
 # Set up Streamlit page config
 st.set_page_config(page_title="Article Research Tool", layout="wide")
-st.title("📰 News Research Tool")
-st.sidebar.title("🔗 Enter Article URLs")
+st.title("📰 Article Research Tool")
+st.sidebar.title("🔧 **Configuration Panel**")
 
-# Add input fields for URLs in the sidebar
-urls = []
-for i in range(3):
-    url = st.sidebar.text_input(f"URL {i + 1}")
-    if url:
-        urls.append(url)
-url_btn = st.sidebar.button("Process URLs")
+# Sidebar for user inputs
+with st.sidebar:
+    st.markdown("### 🔑 **API Keys**")
+    
+    # Hugging Face API token input
+    huggingfacehub_api_token = st.text_input(
+        "Hugging Face API Token",
+        placeholder="Enter your Hugging Face API token",
+        type="password"
+    )
+    
+    # Google API key input
+    google_api_key = st.text_input(
+        "Google API Key",
+        placeholder="Enter your Google API key",
+        type="password"
+    )
+    
+    # Validation check for API keys
+    if not huggingfacehub_api_token or not google_api_key:
+        st.warning("⚠️ Please enter both API keys to proceed.")
+        st.stop()
+    else:
+        st.success("✅ API keys loaded successfully!")
+
+    # Load the Hugging Face API token into environment variables
+    os.environ["HUGGINGFACEHUB_API_TOKEN"] = huggingfacehub_api_token
+    os.environ["GOOGLE_API_KEY"] = google_api_key
+
+    # Horizontal divider
+    st.markdown("---")
+
+    # Section for URL input
+    st.markdown("### 🌐 **Article URLs**")
+    st.markdown("Enter up to **3 article URLs** for processing.")
+    urls = []
+    for i in range(3):
+        url = st.text_input(f"URL {i + 1}", placeholder=f"Enter article URL {i + 1}")
+        if url:
+            urls.append(url)
+
+    # Submit button for processing URLs
+    st.markdown("---")
+    url_btn = st.button("🚀 **Process URLs**")
+
+    # Footer Instructions
+    st.markdown("""
+    📝 **Instructions**:
+    - Enter your API tokens for authentication.
+    - Input up to 3 article URLs.
+    - Submit the URLs and ask any question based on the articles.
+    """)
+
+# Initialize the HuggingFaceHub model
+llm = HuggingFaceHub(
+    repo_id="mistralai/Mistral-7B-Instruct-v0.3",
+    model_kwargs={"temperature": 0.6, "max_new_tokens": 512},
+    huggingfacehub_api_token=huggingfacehub_api_token
+)
 
 # Function to process URLs and create a FAISS index
 def process_urls(urls):
@@ -84,7 +114,7 @@ if url_btn:
         st.warning("⚠️ Please enter at least one URL.")
 
 # Text input for user query
-query = st.text_input("🔍 Ask a Question:", placeholder="Enter your question here...")
+query = st.text_input("🔍 **Ask a Question:**", placeholder="Enter your question here...")
 
 # Function to extract answer and source using regex
 def extract_answer_and_source(final_answer):
@@ -133,12 +163,12 @@ if query:
             answer_start, source_start = extract_answer_and_source(final_answer)
 
             # Display the answer
-            st.subheader("✅ Answer:")
+            st.subheader("✅ **Answer:**")
             st.write(answer_start)
 
             # Display the source only if it's available
             if source_start != "Source not found.":
-                st.subheader("✅ Source:")
+                st.subheader("📚 **Source:**")
                 st.write(source_start)
         else:
             st.warning("⚠️ No answer could be generated. Please try again.")
