@@ -18,21 +18,21 @@ st.sidebar.title("🔧 **Configuration Panel**")
 # Sidebar for user inputs
 with st.sidebar:
     st.markdown("### 🔑 **API Keys**")
-    
+
     # Hugging Face API token input
     huggingfacehub_api_token = st.text_input(
         "Hugging Face API Token",
         placeholder="Enter your Hugging Face API token",
         type="password"
     )
-    
+
     # Google API key input
     google_api_key = st.text_input(
         "Google API Key",
         placeholder="Enter your Google API key",
         type="password"
     )
-    
+
     # Validation check for API keys
     if not huggingfacehub_api_token or not google_api_key:
         st.warning("⚠️ Please enter both API keys to proceed.")
@@ -71,7 +71,7 @@ with st.sidebar:
 # Initialize the HuggingFaceHub model
 llm = HuggingFaceHub(
     repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-    model_kwargs={"temperature": 0.6, "max_new_tokens": 512},
+    model_kwargs={"temperature": 0.0, "max_new_tokens": 512},  # Low temperature to reduce hallucination
     huggingfacehub_api_token=huggingfacehub_api_token
 )
 
@@ -81,10 +81,11 @@ def process_urls(urls):
         loader = UnstructuredURLLoader(urls=urls)
         data = loader.load()
 
-        # Split the data into chunks
+        # Split the data into chunks with overlap
         text_splitter = RecursiveCharacterTextSplitter(
             separators=['\n', '.', ','],
-            chunk_size=256
+            chunk_size=256,
+            chunk_overlap=50
         )
         docs = text_splitter.split_documents(data)
 
@@ -116,6 +117,13 @@ if url_btn:
 # Text input for user query
 query = st.text_input("🔍 **Ask a Question:**", placeholder="Enter your question here...")
 
+# Prompt template for strict retrieval-based QA
+prompt_template = (
+    "Based on the following context, answer the question strictly using the information provided. "
+    "Do not add information that is not in the context. If unsure, reply 'I don't know.'\n\n"
+    "Context: {context}\n\nQuestion: {question}"
+)
+
 # Function to extract answer and source using regex
 def extract_answer_and_source(final_answer):
     answer = re.search(r"Helpful Answer:\s*(.*?)(?:\s*Retrieved from|$)", final_answer, re.DOTALL)
@@ -140,14 +148,17 @@ def get_answer(query):
 
         # Initialize FAISS store and retrieval chain
         faiss_store = FAISS(index=index, docstore=docstore, index_to_docstore_id=index_to_docstore_id, embedding_function=embeddings.embed_query)
-        chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=faiss_store.as_retriever()
-        )
+        retriever = faiss_store.as_retriever()
 
-        # Get the result from the retrieval chain
-        result = chain.run(query)
+        # Retrieve relevant chunks
+        retrieved_docs = retriever.get_relevant_documents(query)
+        context = " ".join([doc.page_content for doc in retrieved_docs])
+
+        # Use the strict prompt template
+        input_prompt = prompt_template.format(context=context, question=query)
+
+        # Get the result from the LLM
+        result = llm(input_prompt)
         return result
 
     except Exception as e:
@@ -159,16 +170,7 @@ if query:
     with st.spinner("🔄 Generating answer..."):
         final_answer = get_answer(query)
         if final_answer:
-            # Extract the answer and source
-            answer_start, source_start = extract_answer_and_source(final_answer)
-
-            # Display the answer
             st.subheader("✅ **Answer:**")
-            st.write(answer_start)
-
-            # Display the source only if it's available
-            if source_start != "Source not found.":
-                st.subheader("📚 **Source:**")
-                st.write(source_start)
+            st.write(final_answer)
         else:
             st.warning("⚠️ No answer could be generated. Please try again.")
